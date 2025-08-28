@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - LLM Relay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f7;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav {
+            background: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 2rem;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: #5a6fd8;
+            border-bottom-color: #5a6fd8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            color: #333;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group .help-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.5rem;
+            transform: scale(1.2);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .test-connection {
+            margin-top: 1rem;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.success {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
+        }
+
+        .status-indicator.testing {
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚙️ 系统设置</h1>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/admin/dashboard">📊 仪表板</a>
+            <a href="/admin/settings-page" class="active">⚙️ 系统设置</a>
+            <a href="/admin/api-keys-page">🔑 API 密钥</a>
+            <a href="/admin/logs-page">📋 日志查看</a>
+            <a href="/docs">📖 API 文档</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="alert" id="alert">
+            <span id="alertMessage"></span>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            正在保存设置...
+        </div>
+
+        <form id="settingsForm">
+            <!-- 代理配置 -->
+            <div class="form-container">
+                <div class="form-section">
+                    <h3>🌐 代理配置</h3>
+                    <div class="form-group">
+                        <label for="proxy_base_url">代理服务地址</label>
+                        <input type="url" id="proxy_base_url" name="proxy_base_url" placeholder="http://localhost:8000">
+                        <div class="help-text">对外提供服务的地址，客户端将使用此地址访问代理服务</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 目标提供方配置 -->
+            <div class="form-container">
+                <div class="form-section">
+                    <h3>🎯 目标提供方配置</h3>
+                    <div class="form-group">
+                        <label for="target_base_url">目标 API 地址</label>
+                        <input type="url" id="target_base_url" name="target_base_url" placeholder="https://api.openai.com">
+                        <div class="help-text">实际的 LLM 服务提供方 API 地址</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="target_api_key">目标 API 密钥</label>
+                        <div class="password-input">
+                            <input type="password" id="target_api_key" name="target_api_key" placeholder="sk-...">
+                            <button type="button" class="password-toggle" onclick="togglePassword('target_api_key')">显示</button>
+                        </div>
+                        <div class="help-text">访问目标提供方的 API 密钥</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="default_model">默认模型</label>
+                        <input type="text" id="default_model" name="default_model" placeholder="gpt-4o-mini">
+                        <div class="help-text">当请求中未指定模型时使用的默认模型名称</div>
+                    </div>
+
+                    <div class="test-connection">
+                        <button type="button" class="btn btn-secondary" onclick="testConnection()">
+                            测试连接
+                        </button>
+                        <span class="connection-status" id="connectionStatus"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HTTP 配置 -->
+            <div class="form-container">
+                <div class="form-section">
+                    <h3>🔧 HTTP 配置</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="http_timeout_seconds">请求超时时间（秒）</label>
+                            <input type="number" id="http_timeout_seconds" name="http_timeout_seconds" min="1" max="300" value="60">
+                            <div class="help-text">向目标提供方发起请求的超时时间</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="http_max_retries">最大重试次数</label>
+                            <input type="number" id="http_max_retries" name="http_max_retries" min="0" max="10" value="0">
+                            <div class="help-text">请求失败时的重试次数（0表示不重试）</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日志配置 -->
+            <div class="form-container" style="display: none;">
+                <div class="form-section">
+                    <h3>📋 日志与隐私配置</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="redact_logs" name="redact_logs">
+                        <label for="redact_logs">启用日志数据脱敏</label>
+                    </div>
+                    <div class="help-text" style="margin-left: 1.5rem; margin-top: -0.5rem;">
+                        开启后将自动识别并脱敏请求/响应中的敏感信息（如邮箱、手机号等）
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div class="form-container">
+                <button type="submit" class="btn btn-success">💾 保存设置</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 重置</button>
+                <a href="/admin/dashboard" class="btn btn-secondary">🏠 返回仪表板</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let originalSettings = {};
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = '/admin/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+            return token;
+        }
+
+        // 页面加载完成后获取当前设置
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) return;
+            loadSettings();
+        });
+
+        // 加载当前设置
+        async function loadSettings() {
+            const token = checkAuth();
+            if (!token) return;
+
+            try {
+                const response = await fetch('/admin/settings', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) {
+                    const settings = await response.json();
+                    originalSettings = settings;
+                    populateForm(settings);
+                } else if (response.status === 401) {
+                    localStorage.removeItem('adminToken');
+                    window.location.href = '/admin/login';
+                } else {
+                    showAlert('无法加载设置', 'error');
+                }
+            } catch (error) {
+                showAlert('加载设置时出错: ' + error.message, 'error');
+            }
+        }
+
+        // 填充表单
+        function populateForm(settings) {
+            document.getElementById('proxy_base_url').value = settings.proxy_base_url || '';
+            document.getElementById('target_base_url').value = settings.target_base_url || '';
+            document.getElementById('target_api_key').value = settings.target_api_key || '';
+            document.getElementById('default_model').value = settings.default_model || '';
+            document.getElementById('http_timeout_seconds').value = settings.http_timeout_seconds || 60;
+            document.getElementById('http_max_retries').value = settings.http_max_retries || 0;
+            document.getElementById('redact_logs').checked = settings.redact_logs || false;
+        }
+
+        // 表单提交
+        document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+
+            try {
+                const formData = new FormData(e.target);
+                const settings = Object.fromEntries(formData);
+                
+                // 处理复选框
+                settings.redact_logs = document.getElementById('redact_logs').checked;
+                settings.http_timeout_seconds = parseInt(settings.http_timeout_seconds);
+                settings.http_max_retries = parseInt(settings.http_max_retries);
+
+                const response = await fetch('/admin/settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    const updatedSettings = await response.json();
+                    originalSettings = updatedSettings;
+                    showAlert('设置保存成功！', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert('保存失败: ' + (error.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('保存设置时出错: ' + error.message, 'error');
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+
+        // 测试连接
+        async function testConnection() {
+            const targetUrl = document.getElementById('target_base_url').value;
+            const targetKey = document.getElementById('target_api_key').value;
+            const statusEl = document.getElementById('connectionStatus');
+
+            if (!targetUrl || !targetKey) {
+                showAlert('请先填写目标 API 地址和密钥', 'error');
+                return;
+            }
+
+            statusEl.innerHTML = '<span class="status-indicator testing"></span>测试中...';
+
+            try {
+                // 这里可以调用后端的测试连接API
+                const response = await fetch('/admin/test-connection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                    },
+                    body: JSON.stringify({
+                        target_base_url: targetUrl,
+                        target_api_key: targetKey
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        statusEl.innerHTML = '<span class="status-indicator success"></span>连接成功';
+                        showAlert('目标API连接测试成功！', 'success');
+                    } else {
+                        statusEl.innerHTML = '<span class="status-indicator error"></span>连接失败';
+                        showAlert('连接失败: ' + result.message, 'error');
+                    }
+                } else {
+                    statusEl.innerHTML = '<span class="status-indicator error"></span>连接失败';
+                    showAlert('连接测试失败', 'error');
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<span class="status-indicator error"></span>连接失败';
+                showAlert('连接测试出错: ' + error.message, 'error');
+            }
+        }
+
+        // 显示/隐藏密码
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '隐藏';
+            } else {
+                input.type = 'password';
+                button.textContent = '显示';
+            }
+        }
+
+        // 重置表单
+        function resetForm() {
+            if (confirm('确定要重置所有设置为当前保存的值吗？')) {
+                populateForm(originalSettings);
+                document.getElementById('connectionStatus').innerHTML = '';
+                showAlert('表单已重置', 'success');
+            }
+        }
+
+        // 显示提示信息
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            const alertMessage = document.getElementById('alertMessage');
+            
+            alertMessage.textContent = message;
+            alert.className = 'alert ' + type;
+            alert.classList.add('show');
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

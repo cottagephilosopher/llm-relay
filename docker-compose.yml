@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  llm-relay:
+    build: .
+    container_name: llm-relay
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/llm_relay.db
+      - TARGET_API_KEY=${TARGET_API_KEY:-your-openai-key-here}
+      - PROXY_KEY=${PROXY_KEY:-sk-proxy-auto-generated}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - PROXY_BASE_URL=${PROXY_BASE_URL:-http://localhost:8000}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: PostgreSQL database
+  # Uncomment to use PostgreSQL instead of SQLite
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: llm-relay-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: llm_relay
+  #     POSTGRES_USER: llm_relay_user
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./backups:/backups
+  #   ports:
+  #     - "5432:5432"
+
+  # Optional: Nginx reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: llm-relay-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+  #     - ./nginx/ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - llm-relay
+
+# volumes:
+#   postgres_data:

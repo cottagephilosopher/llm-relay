@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志查看 - LLM Relay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f7;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav {
+            background: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 2rem;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: #5a6fd8;
+            border-bottom-color: #5a6fd8;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem;
+        }
+
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .filters h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .logs-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        td {
+            font-size: 0.85rem;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .method-get {
+            background: #28a745;
+        }
+
+        .method-post {
+            background: #007bff;
+        }
+
+        .route-path {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .view-details {
+            background: none;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-details:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 1rem;
+        }
+
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            color: #333;
+            font-size: 1.3rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section h4 {
+            color: #333;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .json-viewer {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+        }
+
+        .json-viewer .json-key {
+            color: #63b3ed;
+        }
+
+        .json-viewer .json-string {
+            color: #68d391;
+        }
+
+        .json-viewer .json-number {
+            color: #fbb6ce;
+        }
+
+        .json-viewer .json-boolean {
+            color: #feb2b2;
+        }
+
+        .json-viewer .json-null {
+            color: #a0aec0;
+        }
+
+        .content-toggle {
+            background: none;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .content-toggle:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .content-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .expandable-content {
+            display: none;
+        }
+
+        .expandable-content.show {
+            display: block;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 0 1rem 2rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 1rem;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 日志查看</h1>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/admin/dashboard">📊 仪表板</a>
+            <a href="/admin/settings-page">⚙️ 系统设置</a>
+            <a href="/admin/api-keys-page">🔑 API 密钥</a>
+            <a href="/admin/logs-page" class="active">📋 日志查看</a>
+            <a href="/docs">📖 API 文档</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 搜索和筛选 -->
+        <div class="filters">
+            <h3>🔍 搜索与筛选</h3>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>开始时间</label>
+                    <input type="datetime-local" id="startDate">
+                </div>
+                <div class="filter-group">
+                    <label>结束时间</label>
+                    <input type="datetime-local" id="endDate">
+                </div>
+                <div class="filter-group">
+                    <label>路由</label>
+                    <select id="routeFilter">
+                        <option value="">全部</option>
+                        <option value="/v1/chat/completions">聊天完成</option>
+                        <option value="/v1/responses">响应 API</option>
+                        <option value="/v1/models">模型列表</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>请求方法</label>
+                    <select id="methodFilter">
+                        <option value="">全部</option>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>状态</label>
+                    <select id="statusFilter">
+                        <option value="">全部</option>
+                        <option value="success">成功</option>
+                        <option value="error">错误</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>模型</label>
+                    <input type="text" id="modelFilter" placeholder="输入模型名称">
+                </div>
+                <div class="filter-group">
+                    <label>是否流式</label>
+                    <select id="streamedFilter">
+                        <option value="">全部</option>
+                        <option value="true">流式</option>
+                        <option value="false">非流式</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>关键字搜索</label>
+                    <input type="text" id="searchKeyword" placeholder="搜索请求或响应内容">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-primary" onclick="loadLogs()">🔍 搜索</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">🔄 重置</button>
+                <button class="export-btn" onclick="exportLogs()">📥 导出</button>
+                <span class="page-info" id="pageInfo"></span>
+            </div>
+        </div>
+
+        <!-- 加载中 -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            正在加载日志...
+        </div>
+
+        <!-- 日志表格 -->
+        <div class="logs-table" id="logsTable" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>方法</th>
+                        <th>路由</th>
+                        <th>模型</th>
+                        <th>状态</th>
+                        <th>延迟</th>
+                        <th>Token</th>
+                        <th>流式</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 无数据提示 -->
+        <div class="no-data" id="noData" style="display: none;">
+            <p>😔 没有找到符合条件的日志记录</p>
+            <p>请尝试调整筛选条件或时间范围</p>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination" id="pagination" style="display: none;">
+            <button onclick="goToPage(currentPage - 1)" id="prevBtn">← 上一页</button>
+            <span id="pageNumbers"></span>
+            <button onclick="goToPage(currentPage + 1)" id="nextBtn">下一页 →</button>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 日志详情</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <!-- 详情内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let pageSize = 20;
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = '/admin/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return false;
+            }
+            return token;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) return;
+            initializePage();
+            loadLogs();
+        });
+
+        function initializePage() {
+            // 设置默认时间范围（最近24小时）
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            
+            document.getElementById('startDate').value = formatDateForInput(yesterday);
+            document.getElementById('endDate').value = formatDateForInput(now);
+        }
+
+        function formatDateForInput(date) {
+            return date.toISOString().slice(0, 16);
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            // 确保正确解析UTC时间
+            let date = new Date(dateString);
+            // 如果字符串没有时区信息，假设它是UTC时间
+            if (!dateString.includes('T') || (!dateString.includes('Z') && !dateString.includes('+'))) {
+                // 格式如 "2025-08-28 06:31:56.060520"，假设为UTC
+                date = new Date(dateString + 'Z');
+            }
+            return date.toLocaleString('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function formatDuration(ms) {
+            if (!ms) return '-';
+            if (ms < 1000) return `${ms}ms`;
+            return `${(ms / 1000).toFixed(2)}s`;
+        }
+
+        async function loadLogs(page = 1) {
+            currentPage = page;
+            
+            const loading = document.getElementById('loading');
+            const logsTable = document.getElementById('logsTable');
+            const noData = document.getElementById('noData');
+            const pagination = document.getElementById('pagination');
+
+            loading.classList.add('show');
+            logsTable.style.display = 'none';
+            noData.style.display = 'none';
+            pagination.style.display = 'none';
+
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    page_size: pageSize
+                });
+
+                // 收集筛选条件
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const route = document.getElementById('routeFilter').value;
+                const method = document.getElementById('methodFilter').value;
+                const status = document.getElementById('statusFilter').value;
+                const model = document.getElementById('modelFilter').value;
+                const streamed = document.getElementById('streamedFilter').value;
+                const search = document.getElementById('searchKeyword').value;
+
+                if (startDate) params.append('start_date', startDate + ':00');
+                if (endDate) params.append('end_date', endDate + ':00');
+                if (route) params.append('route', route);
+                if (method) params.append('method', method);
+                if (status) params.append('status', status);
+                if (model) params.append('model', model);
+                if (streamed) params.append('streamed', streamed);
+                if (search) params.append('search', search);
+
+                const token = checkAuth();
+                if (!token) return;
+
+                const response = await fetch(`/admin/logs?${params.toString()}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayLogs(data);
+                    updatePagination(data);
+                } else {
+                    throw new Error('加载日志失败');
+                }
+            } catch (error) {
+                console.error('Error loading logs:', error);
+                noData.innerHTML = '<p>❌ 加载日志时出错</p><p>' + error.message + '</p>';
+                noData.style.display = 'block';
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function displayLogs(data) {
+            const logsBody = document.getElementById('logsBody');
+            const logsTable = document.getElementById('logsTable');
+            const noData = document.getElementById('noData');
+
+            if (!data.logs || data.logs.length === 0) {
+                noData.style.display = 'block';
+                return;
+            }
+
+            let html = '';
+            data.logs.forEach(log => {
+                const statusClass = log.proxy_status < 400 ? 'status-success' : 'status-error';
+                const statusText = log.proxy_status < 400 ? '成功' : '错误';
+                const methodClass = log.method.toLowerCase();
+                
+                html += `
+                    <tr>
+                        <td>${formatDateTime(log.created_at)}</td>
+                        <td><span class="method-badge method-${methodClass}">${log.method}</span></td>
+                        <td><span class="route-path">${log.route}</span></td>
+                        <td>${log.provider_model || '-'}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            ${log.proxy_status ? `(${log.proxy_status})` : ''}
+                        </td>
+                        <td>${formatDuration(log.latency_ms)}</td>
+                        <td>${log.token_usage_total || '-'}</td>
+                        <td>${log.streamed ? '✅' : '❌'}</td>
+                        <td>
+                            <button class="view-details" onclick="viewLogDetail(${log.id})">
+                                查看详情
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            logsBody.innerHTML = html;
+            logsTable.style.display = 'block';
+        }
+
+        function updatePagination(data) {
+            const pagination = document.getElementById('pagination');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+
+            totalPages = data.total_pages;
+            
+            pageInfo.textContent = `共 ${data.total} 条记录，第 ${data.page} / ${totalPages} 页`;
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+
+            // 生成页码
+            let pagesHtml = '';
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                pagesHtml += '<button onclick="goToPage(1)">1</button>';
+                if (startPage > 2) pagesHtml += '<span>...</span>';
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === currentPage ? 'current' : '';
+                pagesHtml += `<button class="${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) pagesHtml += '<span>...</span>';
+                pagesHtml += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            pageNumbers.innerHTML = pagesHtml;
+            pagination.style.display = 'flex';
+        }
+
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                loadLogs(page);
+            }
+        }
+
+        async function viewLogDetail(logId) {
+            try {
+                const token = localStorage.getItem('adminToken');
+                if (!token) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+
+                const response = await fetch(`/admin/logs/${logId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) {
+                    const log = await response.json();
+                    showLogDetail(log);
+                } else {
+                    alert('获取日志详情失败');
+                }
+            } catch (error) {
+                console.error('Error fetching log detail:', error);
+                alert('获取日志详情时出错');
+            }
+        }
+
+        function showLogDetail(log) {
+            const modalBody = document.getElementById('modalBody');
+            
+            const html = `
+                <div class="detail-section">
+                    <h4>📊 基本信息</h4>
+                    <div class="detail-grid">
+                        <div class="detail-label">请求ID:</div>
+                        <div class="detail-value">${log.id}</div>
+                        <div class="detail-label">创建时间:</div>
+                        <div class="detail-value">${formatDateTime(log.created_at)}</div>
+                        <div class="detail-label">完成时间:</div>
+                        <div class="detail-value">${log.finished_at ? formatDateTime(log.finished_at) : '未完成'}</div>
+                        <div class="detail-label">耗时:</div>
+                        <div class="detail-value">${formatDuration(log.latency_ms)}</div>
+                        <div class="detail-label">路由:</div>
+                        <div class="detail-value">${log.route}</div>
+                        <div class="detail-label">方法:</div>
+                        <div class="detail-value">${log.method}</div>
+                        <div class="detail-label">模型:</div>
+                        <div class="detail-value">${log.provider_model || '未指定'}</div>
+                        <div class="detail-label">流式传输:</div>
+                        <div class="detail-value">${log.streamed ? '是' : '否'}</div>
+                        <div class="detail-label">代理状态:</div>
+                        <div class="detail-value">${log.proxy_status}</div>
+                        <div class="detail-label">提供方状态:</div>
+                        <div class="detail-value">${log.provider_status || '未知'}</div>
+                    </div>
+                </div>
+
+                ${(log.token_usage_total !== null && log.token_usage_total !== undefined) ? `
+                <div class="detail-section">
+                    <h4>📊 Token 使用量</h4>
+                    <div class="detail-grid">
+                        <div class="detail-label">提示 Token:</div>
+                        <div class="detail-value">${log.token_usage_prompt || 0}</div>
+                        <div class="detail-label">完成 Token:</div>
+                        <div class="detail-value">${log.token_usage_completion || 0}</div>
+                        <div class="detail-label">总计 Token:</div>
+                        <div class="detail-value">${log.token_usage_total}</div>
+                        ${log.cost_estimated ? `
+                        <div class="detail-label">预估成本:</div>
+                        <div class="detail-value">$${log.cost_estimated.toFixed(6)}</div>
+                        ` : ''}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${log.error_code ? `
+                <div class="detail-section">
+                    <h4>❌ 错误信息</h4>
+                    <div class="detail-grid">
+                        <div class="detail-label">错误代码:</div>
+                        <div class="detail-value">${log.error_code}</div>
+                        <div class="detail-label">错误消息:</div>
+                        <div class="detail-value">${log.error_message}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${log.request_body_full || log.request_body_preview ? `
+                <div class="content-section">
+                    <div class="content-header">
+                        <h4>📤 请求内容</h4>
+                        ${log.request_body_full ? `
+                            <button class="content-toggle" onclick="toggleContent('requestContent')">
+                                展开完整内容
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${log.request_body_preview ? `
+                        <div class="code-block">${log.request_body_preview}</div>
+                    ` : ''}
+                    ${log.request_body_full ? `
+                        <div id="requestContent" class="expandable-content">
+                            <div class="json-viewer">${formatJSON(log.request_body_full)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                ${log.response_body_full || log.response_body_preview ? `
+                <div class="content-section">
+                    <div class="content-header">
+                        <h4>📥 响应内容</h4>
+                        ${log.response_body_full ? `
+                            <button class="content-toggle" onclick="toggleContent('responseContent')">
+                                展开完整内容
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${log.response_body_preview ? `
+                        <div class="code-block">${log.response_body_preview}</div>
+                    ` : ''}
+                    ${log.response_body_full ? `
+                        <div id="responseContent" class="expandable-content">
+                            <div class="json-viewer">${formatJSON(log.response_body_full)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                <div class="detail-section">
+                    <h4>ℹ️ 其他信息</h4>
+                    <div class="detail-grid">
+                        <div class="detail-label">提供方地址:</div>
+                        <div class="detail-value">${log.provider_base_url}</div>
+                        <div class="detail-label">内容被截断:</div>
+                        <div class="detail-value">${log.truncated ? '是' : '否'}</div>
+                        <div class="detail-label">部分响应:</div>
+                        <div class="detail-value">${log.partial ? '是' : '否'}</div>
+                    </div>
+                </div>
+            `;
+
+            modalBody.innerHTML = html;
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        function resetFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('routeFilter').value = '';
+            document.getElementById('methodFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('modelFilter').value = '';
+            document.getElementById('streamedFilter').value = '';
+            document.getElementById('searchKeyword').value = '';
+            
+            initializePage();
+            loadLogs(1);
+        }
+
+        async function exportLogs() {
+            try {
+                const params = new URLSearchParams({
+                    page: 1,
+                    page_size: 1000 // 导出更多记录
+                });
+
+                // 收集筛选条件
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const route = document.getElementById('routeFilter').value;
+                const method = document.getElementById('methodFilter').value;
+                const status = document.getElementById('statusFilter').value;
+                const model = document.getElementById('modelFilter').value;
+                const streamed = document.getElementById('streamedFilter').value;
+                const search = document.getElementById('searchKeyword').value;
+
+                if (startDate) params.append('start_date', startDate + ':00');
+                if (endDate) params.append('end_date', endDate + ':00');
+                if (route) params.append('route', route);
+                if (method) params.append('method', method);
+                if (status) params.append('status', status);
+                if (model) params.append('model', model);
+                if (streamed) params.append('streamed', streamed);
+                if (search) params.append('search', search);
+
+                const token = checkAuth();
+                if (!token) return;
+
+                const response = await fetch(`/admin/logs?${params.toString()}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    exportToCSV(data.logs);
+                } else {
+                    throw new Error('导出失败');
+                }
+            } catch (error) {
+                console.error('Error exporting logs:', error);
+                alert('导出失败: ' + error.message);
+            }
+        }
+
+        function exportToCSV(logs) {
+            const headers = [
+                'ID', '创建时间', '完成时间', '耗时(ms)', '路由', '方法', '模型',
+                '代理状态', '提供方状态', '流式', 'Token总数', '错误代码', '错误消息'
+            ];
+
+            const csvContent = [
+                headers.join(','),
+                ...logs.map(log => [
+                    log.id,
+                    `"${formatDateTime(log.created_at)}"`,
+                    `"${log.finished_at ? formatDateTime(log.finished_at) : ''}"`,
+                    log.latency_ms || '',
+                    `"${log.route}"`,
+                    log.method,
+                    `"${log.provider_model || ''}"`,
+                    log.proxy_status || '',
+                    log.provider_status || '',
+                    log.streamed ? '是' : '否',
+                    log.token_usage_total || '',
+                    `"${log.error_code || ''}"`,
+                    `"${(log.error_message || '').replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `llm_relay_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 点击弹窗外部区域关闭弹窗
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        function toggleContent(contentId) {
+            const content = document.getElementById(contentId);
+            const button = event.target;
+            
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                button.textContent = '展开完整内容';
+            } else {
+                content.classList.add('show');
+                button.textContent = '收起内容';
+            }
+        }
+
+        function formatJSON(jsonString) {
+            if (!jsonString) return '';
+            
+            try {
+                // Try to parse as JSON for syntax highlighting
+                const parsed = JSON.parse(jsonString);
+                return syntaxHighlight(JSON.stringify(parsed, null, 2));
+            } catch (e) {
+                // If not valid JSON, return as-is with escaping
+                return escapeHtml(jsonString);
+            }
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
