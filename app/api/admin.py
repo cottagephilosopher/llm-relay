@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, and_
@@ -18,7 +18,8 @@ from app.schemas.admin import (
     LogListResponse,
     DashboardStats,
     LoginRequest,
-    TokenResponse
+    TokenResponse,
+    ConnectionTestResponse
 )
 from app.models.models import Settings, ApiKey, Log
 from app.core.security import (
@@ -288,7 +289,7 @@ async def delete_api_key(
     db.delete(api_key_obj)
     db.commit()
     
-    return {"message": "API key deleted successfully"}
+    return Response(content='{"message": "API key deleted successfully"}', media_type="application/json")
 
 @router.get("/logs", response_model=LogListResponse)
 async def get_logs(
@@ -369,10 +370,10 @@ async def get_log_detail(
     
     return log
 
-@router.post("/test-connection")
+@router.post("/test-connection", response_model=ConnectionTestResponse)
 async def test_connection(
     connection_data: dict,
-    admin_user: str = Depends(verify_admin_credentials)
+    admin_user: str = Depends(verify_admin_token)
 ):
     """Test connection to target provider"""
     
@@ -380,39 +381,57 @@ async def test_connection(
     target_api_key = connection_data.get("target_api_key")
     
     if not target_base_url or not target_api_key:
-        return {"success": False, "message": "缺少必要的连接参数"}
+        return ConnectionTestResponse(success=False, message="缺少必要的连接参数")
     
     try:
-        # 构建测试请求
+        # 构建测试请求 - 使用与provider.py相同的请求头
         headers = {
             "Authorization": f"Bearer {target_api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "LLM-Relay/1.0"
         }
         
-        # 测试模型列表端点
-        test_url = f"{target_base_url.rstrip('/')}/v1/models"
+        # 使用chat/completions端点进行测试，应用和provider.py相同的URL构建逻辑
+        base_url = target_base_url.rstrip('/')
+        if "chat/completions" in base_url:
+            test_url = base_url  # 如果已包含chat/completions路径，直接使用
+        else:
+            test_url = f"{base_url}/v1/chat/completions"
+        
+        # 构建测试请求体 - 使用配置中的默认模型
+        default_model = connection_data.get("default_model", "doubao-1-5-pro-256k-250115")
+        test_payload = {
+            "model": default_model,
+            "messages": [{"role": "user", "content": "test"}],
+            "max_tokens": 1
+        }
         
         async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-            response = await client.get(test_url, headers=headers)
+            response = await client.post(test_url, headers=headers, json=test_payload)
             
             if response.status_code == 200:
-                data = response.json()
-                model_count = len(data.get("data", [])) if isinstance(data.get("data"), list) else 0
-                return {
-                    "success": True, 
-                    "message": f"连接成功，发现 {model_count} 个可用模型",
-                    "model_count": model_count
-                }
+                return ConnectionTestResponse(
+                    success=True, 
+                    message="连接成功，API响应正常"
+                )
             else:
-                return {
-                    "success": False, 
-                    "message": f"API 返回错误状态码: {response.status_code}"
-                }
+                error_detail = ""
+                try:
+                    error_data = response.json()
+                    if isinstance(error_data, dict) and "error" in error_data:
+                        error_detail = f": {error_data['error'].get('message', '')}"
+                except:
+                    pass
+                
+                return ConnectionTestResponse(
+                    success=False, 
+                    message=f"API 返回错误状态码: {response.status_code}{error_detail}"
+                )
                 
     except httpx.TimeoutException:
-        return {"success": False, "message": "连接超时，请检查网络或目标地址"}
+        return ConnectionTestResponse(success=False, message="连接超时，请检查网络或目标地址")
     except httpx.RequestError as e:
-        return {"success": False, "message": f"网络请求失败: {str(e)}"}
+        return ConnectionTestResponse(success=False, message=f"网络请求失败: {str(e)}")
     except Exception as e:
         logger.error(f"Connection test failed: {e}")
-        return {"success": False, "message": f"连接测试失败: {str(e)}"}
+        return ConnectionTestResponse(success=False, message=f"连接测试失败: {str(e)}")

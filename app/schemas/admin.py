@@ -2,6 +2,12 @@ from pydantic import BaseModel, field_serializer
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 
+# Connection test schema
+class ConnectionTestResponse(BaseModel):
+    success: bool
+    message: str
+    model_count: Optional[int] = None
+
 # Settings schemas
 class SettingsUpdate(BaseModel):
     proxy_base_url: Optional[str] = None
