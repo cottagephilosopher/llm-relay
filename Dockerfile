@@ -25,11 +25,11 @@ RUN useradd --create-home --shell /bin/bash app && \
 USER app
 
 # Expose port
-EXPOSE 8000
+EXPOSE 11438
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+    CMD curl -f http://localhost:11438/healthz || exit 1
 
 # Start application
-CMD ["python", "run.py", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["python", "run.py", "--host", "0.0.0.0", "--port", "11438", "--workers", "4"]

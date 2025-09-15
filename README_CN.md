@@ -100,16 +100,16 @@ python run.py
 ```
 
 5. **访问系统**
-- **API 端点**: `http://localhost:8000`
-- **管理面板**: `http://localhost:8000/admin/login`
-- **API 文档**: `http://localhost:8000/docs`
+- **API 端点**: `http://localhost:11438`
+- **管理面板**: `http://localhost:11438/admin/login`
+- **API 文档**: `http://localhost:11438/docs`
 
 ## 📖 使用方法
 
 ### 基础聊天补全
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:11438/v1/chat/completions \
   -H "Authorization: Bearer YOUR-PROXY-KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -122,7 +122,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ### 视觉语言模型 (VLM)
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:11438/v1/chat/completions \
   -H "Authorization: Bearer YOUR-PROXY-KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -142,7 +142,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 import openai
 
 # 配置使用 LLM Relay
-openai.api_base = "http://localhost:8000/v1"
+openai.api_base = "http://localhost:11438/v1"
 openai.api_key = "YOUR-PROXY-KEY"
 
 # 像使用 OpenAI 一样使用
@@ -161,7 +161,7 @@ print(response.choices[0].message.content)
 
 ```bash
 # 核心设置
-PROXY_BASE_URL=http://localhost:8000    # 代理服务器地址
+PROXY_BASE_URL=http://localhost:11438    # 代理服务器地址
 PROXY_KEY=sk-proxy-your-key            # API 访问密钥
 
 # 目标供应商
@@ -217,7 +217,7 @@ python run.py --init
 docker-compose up -d
 ```
 
-服务将在 `http://localhost:8000` 可用
+服务将在 `http://localhost:11438` 可用
 
 ## 🔍 API 端点
 

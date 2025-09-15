@@ -5,7 +5,7 @@ import secrets
 
 class Settings(BaseSettings):
     # Proxy Configuration
-    proxy_base_url: str = "http://localhost:8000"
+    proxy_base_url: str = "http://localhost:11438"
     proxy_key: Optional[str] = None
     
     # Target Provider Configuration

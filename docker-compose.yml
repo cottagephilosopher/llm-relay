@@ -6,18 +6,18 @@ services:
     container_name: llm-relay
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "11438:11438"
     environment:
       - DATABASE_URL=sqlite:///./data/llm_relay.db
       - TARGET_API_KEY=${TARGET_API_KEY:-your-openai-key-here}
       - PROXY_KEY=${PROXY_KEY:-sk-proxy-auto-generated}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      - PROXY_BASE_URL=${PROXY_BASE_URL:-http://localhost:8000}
+      - PROXY_BASE_URL=${PROXY_BASE_URL:-http://localhost:11438}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:11438/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3

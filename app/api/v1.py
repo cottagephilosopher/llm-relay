@@ -19,6 +19,7 @@ from app.services.rate_limiter import check_rate_limit
 from app.services.monitoring import metrics_collector
 from app.core.security import hash_api_key
 from app.models.models import ApiKey
+from app.core.config import get_config_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,15 @@ async def verify_api_key(
     token = credentials.credentials
     
     try:
+        # First check if token matches any configured key
+        config_manager = get_config_manager(db)
+        proxy_key = config_manager.get("PROXY_KEY")
+        target_key = config_manager.get("TARGET_API_KEY")
+        
+        if (proxy_key and token == proxy_key) or (target_key and token == target_key):
+            return -1  # Special ID for config-based auth
+        
+        # Then check database for registered API keys
         key_hash = hash_api_key(token)
         api_key_obj = db.query(ApiKey).filter(
             ApiKey.key_hash == key_hash,
@@ -55,6 +65,8 @@ async def verify_api_key(
         
         return api_key_obj.id
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"API key verification error: {e}")
         raise HTTPException(

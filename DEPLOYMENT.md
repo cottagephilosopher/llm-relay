@@ -117,14 +117,14 @@ RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
 USER app
 
 # Expose port
-EXPOSE 8000
+EXPOSE 11438
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+    CMD curl -f http://localhost:11438/healthz || exit 1
 
 # Start application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "11438", "--workers", "4"]
 ```
 
 #### Docker Compose
@@ -138,7 +138,7 @@ services:
     container_name: llm-relay
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "11438:11438"
     environment:
       - DATABASE_URL=postgresql://llm_relay_user:secure_password@db:5432/llm_relay
       - TARGET_API_KEY=${TARGET_API_KEY}
@@ -150,7 +150,7 @@ services:
     depends_on:
       - db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:11438/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -220,7 +220,7 @@ Group=llm-relay
 WorkingDirectory=/opt/llm-relay
 Environment=PATH=/opt/llm-relay/venv/bin
 EnvironmentFile=/opt/llm-relay/.env
-ExecStart=/opt/llm-relay/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+ExecStart=/opt/llm-relay/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 11438 --workers 4
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=5
@@ -270,7 +270,7 @@ sudo systemctl status llm-relay
 ```nginx
 # /etc/nginx/sites-available/llm-relay
 upstream llm_relay {
-    server localhost:8000;
+    server localhost:11438;
     # Add more servers for load balancing
     # server localhost:8001;
     # server localhost:8002;
@@ -390,7 +390,7 @@ sudo systemctl reload nginx
 ```caddyfile
 # Caddyfile
 your-domain.com {
-    reverse_proxy localhost:8000
+    reverse_proxy localhost:11438
     
     # Rate limiting
     rate_limit {
@@ -410,12 +410,12 @@ your-domain.com {
     @admin path /admin/*
     handle @admin {
         # IP filtering can be added here
-        reverse_proxy localhost:8000
+        reverse_proxy localhost:11438
     }
     
     # API endpoints
     handle /v1/* {
-        reverse_proxy localhost:8000 {
+        reverse_proxy localhost:11438 {
             # Enable streaming
             flush_interval -1
         }
@@ -425,7 +425,7 @@ your-domain.com {
     @metrics path /metrics
     handle @metrics {
         # Add IP restrictions
-        reverse_proxy localhost:8000
+        reverse_proxy localhost:11438
     }
 }
 ```
@@ -470,7 +470,7 @@ global:
 scrape_configs:
   - job_name: 'llm-relay'
     static_configs:
-      - targets: ['localhost:8000']
+      - targets: ['localhost:11438']
     metrics_path: /metrics
     scrape_interval: 30s
 ```
@@ -555,7 +555,7 @@ find $BACKUP_DIR -name "llm_relay_*.db.gz" -mtime +7 -delete
 sudo ufw allow ssh
 sudo ufw allow 80
 sudo ufw allow 443
-sudo ufw deny 8000  # Block direct access to app
+sudo ufw deny 11438  # Block direct access to app
 sudo ufw --force enable
 ```
 
@@ -591,7 +591,7 @@ ignoreregex =
 NEW_KEY=$(curl -s -X POST -u admin:password \
   -H "Content-Type: application/json" \
   -d '{"name": "Rotated Key"}' \
-  http://localhost:8000/admin/api-keys | jq -r '.full_key')
+  http://localhost:11438/admin/api-keys | jq -r '.full_key')
 
 echo "New API key generated: $NEW_KEY"
 echo "Remember to update your applications!"
@@ -700,8 +700,8 @@ netstat -tulpn
 sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"
 
 # Application metrics
-curl http://localhost:8000/metrics
-curl http://localhost:8000/healthz
+curl http://localhost:11438/metrics
+curl http://localhost:11438/healthz
 ```
 
 This deployment guide provides a comprehensive approach to running LLM Relay in production with proper security, monitoring, and performance considerations.

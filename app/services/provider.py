@@ -63,7 +63,16 @@ class ProviderAdapter:
     def _build_url(self, endpoint: str) -> str:
         provider_config = self.config_manager.get_provider_config()
         base_url = provider_config["target_base_url"].rstrip("/")
-        return f"{base_url}{endpoint}"
+        
+        # Check if base_url already contains the endpoint path
+        if endpoint == "/v1/chat/completions" and "chat/completions" in base_url:
+            return base_url
+        elif endpoint == "/v1/models" and "models" in base_url:
+            return base_url
+        elif endpoint == "/v1/responses" and "responses" in base_url:
+            return base_url
+        else:
+            return f"{base_url}{endpoint}"
     
     async def _make_request(
         self, 

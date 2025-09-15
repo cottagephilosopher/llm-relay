@@ -99,16 +99,16 @@ python run.py
 ```
 
 5. **Access the system**
-- **API Endpoint**: `http://localhost:8000`
-- **Admin Panel**: `http://localhost:8000/admin/login`
-- **API Documentation**: `http://localhost:8000/docs`
+- **API Endpoint**: `http://localhost:11438`
+- **Admin Panel**: `http://localhost:11438/admin/login`
+- **API Documentation**: `http://localhost:11438/docs`
 
 ## 📖 Usage
 
 ### Basic Chat Completion
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:11438/v1/chat/completions \
   -H "Authorization: Bearer YOUR-PROXY-KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -121,7 +121,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ### Vision Language Model (VLM)
 
 ```bash
-curl -X POST http://localhost:8000/v1/chat/completions \
+curl -X POST http://localhost:11438/v1/chat/completions \
   -H "Authorization: Bearer YOUR-PROXY-KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 import openai
 
 # Configure to use LLM Relay
-openai.api_base = "http://localhost:8000/v1"
+openai.api_base = "http://localhost:11438/v1"
 openai.api_key = "YOUR-PROXY-KEY"
 
 # Use exactly as you would with OpenAI
@@ -160,7 +160,7 @@ print(response.choices[0].message.content)
 
 ```bash
 # Core Settings
-PROXY_BASE_URL=http://localhost:8000    # Proxy server address
+PROXY_BASE_URL=http://localhost:11438    # Proxy server address
 PROXY_KEY=sk-proxy-your-key            # API access key
 
 # Target Provider
@@ -216,7 +216,7 @@ python run.py --init
 docker-compose up -d
 ```
 
-The service will be available at `http://localhost:8000`
+The service will be available at `http://localhost:11438`
 
 ## 🔍 API Endpoints
 

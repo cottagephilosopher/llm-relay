@@ -83,7 +83,7 @@ def init_database_from_env():
     finally:
         db.close()
 
-def run_server(host="127.0.0.1", port=8000, workers=1, reload=False):
+def run_server(host="127.0.0.1", port=11438, workers=1, reload=False):
     """Run the server"""
     print(f"Starting LLM Relay server on {host}:{port}")
     print(f"Workers: {workers}")
@@ -111,7 +111,7 @@ def run_server(host="127.0.0.1", port=8000, workers=1, reload=False):
 def main():
     parser = argparse.ArgumentParser(description="LLM Relay Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
-    parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+    parser.add_argument("--port", type=int, default=11438, help="Port to bind to")
     parser.add_argument("--workers", type=int, default=1, help="Number of worker processes")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     parser.add_argument("--skip-checks", action="store_true", help="Skip startup checks")
